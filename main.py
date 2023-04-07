@@ -1,13 +1,7 @@
-import random
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-
-import random
 import numpy as np
 
 # Define a matriz de distâncias entre as cidades
-distances = np.array([
+distancias = np.array([
     [0, 10, 15, 20],
     [10, 0, 35, 25],
     [15, 35, 0, 30],
@@ -15,86 +9,86 @@ distances = np.array([
 ])
 
 # Define os parâmetros do algoritmo
-num_ants = 10
-num_iterations = 50
+quantidade_formiga = 10
+maximo_iteracoes = 50
 alpha = 1
 beta = 2
-evaporation_rate = 0.5
+taxa_evaporacao = 0.5
 
 # Inicializa a matriz de feromônios com valores iguais
-pheromones = np.ones_like(distances)
+feromonios = np.ones_like(distancias)
 
 # Define a função de atualização dos feromônios
-def update_pheromones(delta_pheromones):
-    global pheromones
-    pheromones = (1 - evaporation_rate) * pheromones + delta_pheromones
+def atualizar_feromonios(delta_feromonios):
+    global feromonios
+    feromonios = (1 - taxa_evaporacao) * feromonios + delta_feromonios
 
 # Define a função para calcular a probabilidade de escolha da próxima cidade
-def calculate_probabilities(current_city, visited_cities):
-    unvisited_cities = np.delete(np.arange(len(distances)), visited_cities)
-    distances_to_unvisited_cities = distances[current_city, unvisited_cities]
-    pheromones_to_unvisited_cities = pheromones[current_city, unvisited_cities]
-    eta = 1 / distances_to_unvisited_cities
-    numerator = pheromones_to_unvisited_cities ** alpha * eta ** beta
-    denominator = np.sum(numerator)
-    probabilities = numerator / denominator
-    return probabilities, unvisited_cities
+def calculate_probabilidade(cidade_atual, cidades_visitadas):
+    cidades_nao_descobertas = np.delete(np.arange(len(distancias)), cidades_visitadas)
+    distancias_to_cidades_nao_descobertas = distancias[cidade_atual, cidades_nao_descobertas]
+    feromonios_to_cidades_nao_descobertas = feromonios[cidade_atual, cidades_nao_descobertas]
+    eta = 1 / distancias_to_cidades_nao_descobertas
+    numerador = feromonios_to_cidades_nao_descobertas ** alpha * eta ** beta
+    denominador = np.sum(numerador)
+    probabilidade = numerador / denominador
+    return probabilidade, cidades_nao_descobertas
 
 # Define a função para escolher a próxima cidade baseada nas probabilidades
-def choose_next_city(probabilities, unvisited_cities):
-    chosen_city = np.random.choice(unvisited_cities, p=probabilities)
-    return chosen_city
+def escolher_proxima_cidade(probabilidade, cidades_nao_descobertas):
+    cidade_escolhida = np.random.choice(cidades_nao_descobertas, p=probabilidade)
+    return cidade_escolhida
 
 # Define a função para calcular a distância total percorrida por uma formiga
-def calculate_distance(visited_cities):
-    num_cities = len(visited_cities)
-    distance = 0
-    for i in range(num_cities - 1):
-        current_city = visited_cities[i]
-        next_city = visited_cities[i + 1]
-        distance += distances[current_city, next_city]
-    distance += distances[visited_cities[-1], visited_cities[0]]
-    return distance
+def calculate_distancia(cidades_visitadas):
+    quantidade_cidades = len(cidades_visitadas)
+    distancia = 0
+    for i in range(quantidade_cidades - 1):
+        cidade_atual = cidades_visitadas[i]
+        proxima_cidade = cidades_visitadas[i + 1]
+        distancia += distancias[cidade_atual, proxima_cidade]
+    distancia += distancias[cidades_visitadas[-1], cidades_visitadas[0]]
+    return distancia
 
 # Executa o algoritmo
-best_solution = None
-best_distance = np.inf
-delta_pheromones = np.zeros_like(distances)
-for iteration in range(num_iterations):
+melhor_solucao = None
+melhor_distancia = np.inf
+delta_feromonios = np.zeros_like(distancias)
+for iteracao in range(maximo_iteracoes):
 # Inicializa as formigas em cidades aleatórias
-    ant_cities = np.zeros((num_ants, len(distances)), dtype=int)
-    for ant in range(num_ants):
-        start_city = np.random.randint(len(distances))
-        ant_cities[ant, 0] = start_city
+    formiga_cidades = np.zeros((quantidade_formiga, len(distancias)), dtype=int)
+    for ant in range(quantidade_formiga):
+        cidade_inicial = np.random.randint(len(distancias))
+        formiga_cidades[ant, 0] = cidade_inicial
 
 # Move as formigas para as próximas cidades
-for i in range(1, len(distances)):
-    for ant in range(num_ants):
-        current_city = ant_cities[ant, i - 1]
-        visited_cities = ant_cities[ant, :i]
-        probabilities, unvisited_cities = calculate_probabilities(current_city, visited_cities)
-        chosen_city = choose_next_city(probabilities, unvisited_cities)
-        ant_cities[ant, i] = chosen_city
+for i in range(1, len(distancias)):
+    for ant in range(quantidade_formiga):
+        cidade_atual = formiga_cidades[ant, i - 1]
+        cidades_visitadas = formiga_cidades[ant, :i]
+        probabilidade, cidades_nao_descobertas = calculate_probabilidade(cidade_atual, cidades_visitadas)
+        cidade_escolhida = escolher_proxima_cidade(probabilidade, cidades_nao_descobertas)
+        formiga_cidades[ant, i] = cidade_escolhida
 
 # Calcula a distância percorrida por cada formiga e atualiza a melhor solução encontrada
-for ant in range(num_ants):
-    distance = calculate_distance(ant_cities[ant])
-    if distance < best_distance:
-        best_distance = distance
-        best_solution = ant_cities[ant]
+for ant in range(quantidade_formiga):
+    distancia = calculate_distancia(formiga_cidades[ant])
+    if distancia < melhor_distancia:
+        melhor_distancia = distancia
+        melhor_solucao = formiga_cidades[ant]
 
 # Calcula a matriz de delta feromônios
-delta_pheromones.fill(0)
-for ant in range(num_ants):
-    for i in range(len(distances) - 1):
-        current_city = ant_cities[ant, i]
-        next_city = ant_cities[ant, i + 1]
-        delta_pheromones[current_city, next_city] += 1 / distance
-    first_city = ant_cities[ant, 0]
-    last_city = ant_cities[ant, -1]
-    delta_pheromones[last_city, first_city] += 1 / distance
+delta_feromonios.fill(0)
+for ant in range(quantidade_formiga):
+    for i in range(len(distancias) - 1):
+        cidade_atual = formiga_cidades[ant, i]
+        proxima_cidade = formiga_cidades[ant, i + 1]
+        delta_feromonios[cidade_atual, proxima_cidade] += 1 / distancia
+    primeira_cidade = formiga_cidades[ant, 0]
+    ultima_cidade = formiga_cidades[ant, -1]
+    delta_feromonios[ultima_cidade, primeira_cidade] += 1 / distancia
 
 # Atualiza a matriz de feromônios
-update_pheromones(delta_pheromones)
-print("Melhor solução encontrada:", best_solution)
-print("Distância percorrida:", best_distance)
+atualizar_feromonios(delta_feromonios)
+print("Melhor solução encontrada:", melhor_solucao)
+print("Distância percorrida:", melhor_distancia)
